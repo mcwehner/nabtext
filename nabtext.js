@@ -1,16 +1,14 @@
 (function ()
 {
-    /* MCW - The Binary Ajax Library here has been modified to make the
-       options passed into `BinaryAjax' easier, as well as adding an
-       option for making the requests synchronous.
-     */
-
     /*
      * Binary Ajax 0.1.7
      * Copyright (c) 2008 Jacob Seidelin, cupboy@gmail.com, http://blog.nihilogic.dk/
      * Licensed under the MPL License [http://www.nihilogic.dk/licenses/mpl-license.txt]
      */
-
+     
+    /*  The Binary Ajax library herein has been heavily modified from the
+        original.
+    */
 
     var BinaryFile = function (strData, iDataOffset, iDataLength)
     {
@@ -248,57 +246,195 @@
             }
         };
     }());
-
-    document.write(
-        "<script type='text/vbscript'>\r\n"
-        + "Function IEBinary_getByteAt(strBinary, iOffset)\r\n"
-        + " IEBinary_getByteAt = AscB(MidB(strBinary,iOffset+1,1))\r\n"
-        + "End Function\r\n"
-        + "Function IEBinary_getLength(strBinary)\r\n"
-        + " IEBinary_getLength = LenB(strBinary)\r\n"
-        + "End Function\r\n"
-        + "</script>\r\n"
-    );
+    
+    // Initializes some IE-specific functions.
+    (function ()
+    {
+        document.write(
+            "<script type='text/vbscript'>\r\n"
+            + "Function IEBinary_getByteAt(strBinary, iOffset)\r\n"
+            + " IEBinary_getByteAt = AscB(MidB(strBinary,iOffset+1,1))\r\n"
+            + "End Function\r\n"
+            + "Function IEBinary_getLength(strBinary)\r\n"
+            + " IEBinary_getLength = LenB(strBinary)\r\n"
+            + "End Function\r\n"
+            + "</script>\r\n"
+        );
+    })();
     
     
-    /* MCW - Yola's javascript gettext implementation */
+    /*  Nabtext
+    */
     
-    var PARSER_FOR_MIME_TYPE = {
-        "application/x-mo"  : parseMO
+    var Nabtext = function ()
+    {
+        // TODO - Make the locale strings case-insensitive throughout the
+        // library (as they're supposed to be, according to BCP 47).
+        this.strings = {
+            "en-US" : {}
+        };
+        
+        this.locale = "en-US";
     };
     
-    var TRANSLATION_FOR_STRING = {};
-    
-    function init ()
+    Nabtext.prototype.sprintf = function ()
     {
-        var links = document.getElementsByTagName("LINK");
+        if (typeof arguments == "undefined")    { return null; }
+        if (arguments.length < 1)               { return null; }
+        if (typeof arguments[0] != "string")    { return null; }
+        if (typeof RegExp == "undefined")       { return null; }
+
+        var string         = arguments[0];
+        var exp            = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
+        var matches        = new Array();
+        var strings        = new Array();
+        var convCount      = 0;
+        var stringPosStart = 0;
+        var stringPosEnd   = 0;
+        var matchPosEnd    = 0;
+        var newString      = "";
+        var match          = null;
+
+        while (match = exp.exec(string)) {
+            if (match[9]) { convCount += 1; }
+
+            stringPosStart          = matchPosEnd;
+            stringPosEnd            = exp.lastIndex - match[0].length;
+            strings[strings.length] = string.substring(stringPosStart, stringPosEnd);
+
+            matchPosEnd = exp.lastIndex;
+            matches[matches.length] = {
+                match       : match[0],
+                left        : match[3] ? true : false,
+                sign        : match[4] || '',
+                pad         : match[5] || ' ',
+                min         : match[6] || 0,
+                precision   : match[8],
+                code        : match[9] || '%',
+                negative    : parseInt(arguments[convCount]) < 0 ? true : false,
+                argument    : String(arguments[convCount])
+            };
+        }
         
-        for (var i = 0; i < links.length; ++i) {
-            var link = links[i];
-            
-            if ("gettext" == link.getAttribute("rel")) {
-                loadData(
-                    link.getAttribute("href"),
-                    link.getAttribute("type")
-                );
+        strings[strings.length] = string.substring(matchPosEnd);
+
+        if (matches.length == 0)                { return string; }
+        if ((arguments.length - 1) < convCount) { return null; }
+
+        var code  = null;
+        var match = null;
+        var i     = null;
+
+        function sprintfConvert (match, nosign)
+        {
+            match.sign = nosign ? "" : (match.negative ? "-" : match.sign);
+
+            var l   = match.min - match.argument.length + 1 - match.sign.length;
+            var pad = new Array(l < 0 ? 0 : l).join(match.pad);
+
+            if (!match.left) {
+                if (match.pad == "0" || nosign) {
+                    return match.sign + pad + match.argument;
+                } else {
+                    return pad + match.sign + match.argument;
+                }
+            }
+            else {
+                if (match.pad == "0" || nosign) {
+                    return match.sign + match.argument + pad.replace(/0/g, ' ');
+                } else {
+                    return match.sign + match.argument + pad;
+                }
             }
         }
-    }
-    
-    function loadData (url, mimeType)
-    {
-        if (!(mimeType in PARSER_FOR_MIME_TYPE)) {
-            throw 'MIME type "' + mimeType + '" not supported.';
+
+        for (var i = 0; i < matches.length; ++i) {
+            switch (matches[i].code) {
+                case "%":
+                    substitution = '%';
+                    break;
+                    
+                case "b":
+                    matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(2));
+                    substitution        = sprintfConvert(matches[i], true);
+                    break;
+                    
+                case "c":
+                    matches[i].argument = String(String.fromCharCode(parseInt(Math.abs(parseInt(matches[i].argument)))));
+                    substitution = sprintfConvert(matches[i], true);
+                    break;
+                    
+                case "d":
+                    matches[i].argument = String(Math.abs(parseInt(matches[i].argument)));
+                    substitution = sprintfConvert(matches[i]);
+                    break;
+                    
+                case "f":
+                    matches[i].argument = String(Math.abs(parseFloat(matches[i].argument)).toFixed(matches[i].precision ? matches[i].precision : 6));
+                    substitution = sprintfConvert(matches[i]);
+                    break;
+                    
+                case "o":
+                    matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(8));
+                    substitution = sprintfConvert(matches[i]);
+                    break;
+                    
+                case "s":
+                    matches[i].argument = matches[i].argument.substring(0, matches[i].precision ? matches[i].precision : matches[i].argument.length)
+                    substitution = sprintfConvert(matches[i], true);
+                    break;
+                    
+                case "x":
+                    matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
+                    substitution = sprintfConvert(matches[i]);
+                    break;
+                    
+                case "X":
+                    matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
+                    substitution = sprintfConvert(matches[i]).toUpperCase();
+                    break;
+                    
+                case "i":
+                    matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString());
+                    substitution = sprintfConvert(matches[i], true);
+                    break;
+                    
+                default:
+                    substitution = matches[i].match;
+                    break;
+            }
+
+            newString += strings[i];
+            newString += substitution;
         }
+        
+        newString += strings[i];
+
+        return newString;
+    };
+    
+    Nabtext.prototype.getData = function (url, mimeType, locale)
+    {
+        var self = this;
+        
+        locale = locale || this.locale;
         
         var successCallback = function (oHTTP)
         {
-            PARSER_FOR_MIME_TYPE[mimeType](oHTTP.binaryResponse);
+            switch (mimeType) {
+                case "application/x-mo":
+                    self.strings[locale] = self.parseMO(oHTTP.binaryResponse);
+                    break;
+
+                default:
+                    throw self.sprintf('MIME type "%s" is not supported.', mimeType);
+                    break;
+            }
         };
         
         var errorCallback = function (oHTTP)
         {
-            throw "Failed to load";
+            throw self.sprintf('Failed to load "%s"', url);
         };
         
         BinaryAjax({
@@ -307,9 +443,9 @@
             error   : errorCallback,
             async   : false
         });
-    }
+    };
     
-    function parseMO (data)
+    Nabtext.prototype.parseMO = function (data)
     {
         var numberOfStrings        = data.getLongAt(8);
         var stringTableOffset      = data.getLongAt(12);
@@ -345,27 +481,37 @@
         }
         
         // reads in translations, builds string map
+        var stringMap = {};
+        
         for (var i = 0; i < numberOfStrings; ++i) {
             var translation = data.getStringAt(
                 translationOffsets[i].offset, translationOffsets[i].length
             );
             
-            TRANSLATION_FOR_STRING[ strings[i] ] = translation;
+            stringMap[ strings[i] ] = translation;
         }
-    }
-    
-    window.gettext = function (key)
-    {
-        return TRANSLATION_FOR_STRING[key] || key;
-    };
-    
-    window._ = window.gettext;
-    
-    window.ngettext = function (singular, plural, count)
-    {
         
+        return stringMap;
     };
     
-    init();
+    // Initializes a global Gettext object using any files specified in
+    // <link> tags.
+    (function ()
+    {
+        var nt    = new Nabtext();
+        var links = document.getElementsByTagName("LINK");
+        
+        for (var i = 0; i < links.length; ++i) {
+            var link = links[i];
+            
+            if ("gettext" == link.getAttribute("rel")) {
+                nt.getData(
+                    link.getAttribute("href"),
+                    link.getAttribute("type"),
+                    link.getAttribute("hreflang")
+                );
+            }
+        }
+    })();
     
 })();
