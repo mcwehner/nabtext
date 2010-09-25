@@ -517,6 +517,7 @@
         
         // reads in translations, builds string map
         var stringMap = {};
+        var pluralRe  = /\0/;
         
         for (var i = 0; i < numberOfStrings; ++i) {
             var translation = data.getStringAt(
@@ -524,7 +525,17 @@
             );
             
             stringMap[ strings[i] ] = translation;
+            
+            // TODO - See if there's a better way of handling the singular
+            // being packed into plurals.
+            var pluralParts = strings[i].split(pluralRe);
+            
+            if (pluralParts.length > 1) {
+                stringMap[ pluralParts[0] ] = translation.split(pluralRe)[0];
+            }
         }
+        
+        // TODO - Cleanup the other unused data structures (e.g., strings).
         
         return stringMap;
     }
