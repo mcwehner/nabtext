@@ -1,4 +1,4 @@
-(function ()
+(function (window)
 {
     /*
      * Binary Ajax 0.1.7
@@ -263,21 +263,32 @@
     })();
     
     
-    /*  Nabtext
+    /*  Gettext
     */
     
-    var Nabtext = function ()
+    // constructor
+    
+    var Gettext = function ()
     {
         // TODO - Make the locale strings case-insensitive throughout the
         // library (as they're supposed to be, according to BCP 47).
-        this.strings = {
-            "en-US" : {}
-        };
+        this.strings      = { "en-US" : {} };
+        this.locale       = "en-US";
         
-        this.locale = "en-US";
+        // When true, this will `console.warn' for missing message ids.
+        this.emitWarnings = true;
     };
     
-    Nabtext.prototype.sprintf = function ()
+    // public interface
+    
+    Gettext.prototype.setlocale = function (locale)
+    {
+        if (locale) { this.locale = locale; }
+        
+        return this.locale;
+    };
+    
+    Gettext.prototype.sprintf = function ()
     {
         if (typeof arguments == "undefined")    { return null; }
         if (arguments.length < 1)               { return null; }
@@ -413,7 +424,7 @@
         return newString;
     };
     
-    Nabtext.prototype.getData = function (url, mimeType, locale)
+    Gettext.prototype.load = function (url, mimeType, locale)
     {
         var self = this;
         
@@ -423,7 +434,7 @@
         {
             switch (mimeType) {
                 case "application/x-mo":
-                    self.strings[locale] = self.parseMO(oHTTP.binaryResponse);
+                    self.strings[locale] = parseMO.call(self, oHTTP.binaryResponse);
                     break;
 
                 default:
@@ -445,7 +456,30 @@
         });
     };
     
-    Nabtext.prototype.parseMO = function (data)
+    Gettext.prototype.gettext = function (messageId)
+    {
+        // TODO - If the current locale (somehow) doesn't exist in the
+        // `strings' object, this will probably break.
+        return this.strings[this.locale][messageId] || messageId;
+    };
+    
+    Gettext.prototype.ngettext = function (messageId, messageIdPlural, count)
+    {
+        var key = messageId + "\0" + messageIdPlural;
+        
+        if (key in this.strings[this.locale]) {
+            var parts = this.strings[this.locale][key].split("\0");
+            
+            return count > 1 ? parts[1] : parts[0];
+        }
+        else {
+            return key;
+        }
+    };
+    
+    // private interface
+    
+    function parseMO (data)
     {
         var numberOfStrings        = data.getLongAt(8);
         var stringTableOffset      = data.getLongAt(12);
@@ -492,20 +526,42 @@
         }
         
         return stringMap;
-    };
+    }
     
     // Initializes a global Gettext object using any files specified in
     // <link> tags.
     (function ()
     {
-        var nt    = new Nabtext();
+        // Sets up the global Gettext object, and global aliases to the
+        // Gettext API.
+        var gt         = new Gettext();
+        window.Gettext = gt;
+        
+        // TODO - This blows away any existing top-level functions with these
+        // names. We should store any originals, and provide a `noconflict()'
+        // method (a la jQuery) for restoring them.
+        
+        // TODO - There's got to be a better way to wrap the functions to
+        // work in the proper scope.
+        function amap (args) { return Array.prototype.slice.call(args); }
+        
+        window.sprintf  = function () { return gt.sprintf.apply(gt, amap(arguments)); };
+        window.gettext  = function () { return gt.gettext.apply(gt, amap(arguments)); };
+        window.ngettext = function () { return gt.ngettext.apply(gt, amap(arguments)); };
+        
+        // Convenience aliases.
+        window._       = window.gettext;
+        
+        // Gets all gettext link tags and loads the specified resources.
         var links = document.getElementsByTagName("LINK");
         
         for (var i = 0; i < links.length; ++i) {
             var link = links[i];
             
             if ("gettext" == link.getAttribute("rel")) {
-                nt.getData(
+                gt.setlocale(link.getAttribute("hreflang"));
+                
+                gt.load(
                     link.getAttribute("href"),
                     link.getAttribute("type"),
                     link.getAttribute("hreflang")
@@ -514,4 +570,4 @@
         }
     })();
     
-})();
+})(window);
