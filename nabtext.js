@@ -275,6 +275,7 @@
         this.strings      = { "en-US" : {} };
         this.locale       = "en-US";
         
+        // TODO - Make this setting actually have an effect.
         // When true, this will `console.warn' for missing message ids.
         this.emitWarnings = true;
     };
