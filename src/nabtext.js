@@ -19,12 +19,22 @@
         // work in the proper scope.
         function amap (args) { return Array.prototype.slice.call(args); }
         
-        window.sprintf  = function () { return gt.sprintf.apply(gt, amap(arguments)); };
-        window.gettext  = function () { return gt.gettext.apply(gt, amap(arguments)); };
-        window.ngettext = function () { return gt.ngettext.apply(gt, amap(arguments)); };
+        window.sprintf     = function () { return gt.sprintf.apply(gt, amap(arguments)); };
+        window.gettext     = function () { return gt.gettext.apply(gt, amap(arguments)); };
+        window.ngettext    = function () { return gt.ngettext.apply(gt, amap(arguments)); };
+        window.dgettext    = function () { return gt.dgettext.apply(gt, amap(arguments)); };
+        window.dcgettext   = function () { return gt.dcgettext.apply(gt, amap(arguments)); };
+        window.dngettext   = function () { return gt.dngettext.apply(gt, amap(arguments)); };
+        window.dcngettext  = function () { return gt.dcngettext.apply(gt, amap(arguments)); };
+        window.pgettext    = function () { return gt.pgettext.apply(gt, amap(arguments)); };
+        window.dpgettext   = function () { return gt.dpgettext.apply(gt, amap(arguments)); };
+        window.dcpgettext  = function () { return gt.dcpgettext.apply(gt, amap(arguments)); };
+        window.npgettext   = function () { return gt.npgettext.apply(gt, amap(arguments)); };
+        window.dnpgettext  = function () { return gt.dnpgettext.apply(gt, amap(arguments)); };
+        window.dcnpgettext = function () { return gt.dcnpgettext.apply(gt, amap(arguments)); };
         
         // Convenience aliases.
-        window._       = window.gettext;
+        window._ = window.gettext;
         
         // Gets all gettext link tags and loads the specified resources.
         var links = document.getElementsByTagName("LINK");

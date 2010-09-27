@@ -476,6 +476,66 @@
         }
     };
 
+    Gettext.prototype.dgettext = function (domain, messageId)
+    {
+        // TODO - Implement domains?
+        return this.gettext(messageId);
+    };
+    
+    Gettext.prototype.dcgettext = function (domain, messageId, category)
+    {
+        // TODO - Implement domains, categories?
+        return this.gettext(messageId);
+    };
+    
+    Gettext.prototype.dngettext = function (domain, messageId, messageIdPlural, count)
+    {
+        // TODO - Implement domains?
+        return this.ngettext(messageId, messageIdPlural, count);
+    };
+    
+    Gettext.prototype.dcngettext = function (domain, messageId, messageIdPlural, count, category)
+    {
+        // TODO - Implement domains, categories?
+        return this.ngettext(messageId, messageIdPlural, count);
+    };
+    
+    Gettext.prototype.pgettext = function (context, messageId)
+    {
+        // TODO - Implement contexts?
+        return this.gettext(messageId);
+    };
+    
+    Gettext.prototype.dpgettext = function (domain, context, messageId)
+    {
+        // TODO - Implement domains, contexts?
+        return this.gettext(messageId);
+    };
+    
+    Gettext.prototype.dcpgettext = function (domain, context, messageId, category)
+    {
+        // TODO - Implement domains, contexts, categories?
+        return this.gettext(messageId);
+    };
+    
+    Gettext.prototype.npgettext = function (context, messageId, messageIdPlural, count)
+    {
+        // TODO - Implement contexts?
+        return this.ngettext(messageId, messageIdPlural, count);
+    };
+    
+    Gettext.prototype.dnpgettext = function (domain, context, messageId, messageIdPlural, count)
+    {
+        // TODO - Implement domains, contexts?
+        return this.ngettext(messageId, messageIdPlural, count);
+    };
+    
+    Gettext.prototype.dcnpgettext = function (domain, context, messageId, messageIdPlural, count, category)
+    {
+        // TODO - Implement domains, contexts, categories?
+        return this.ngettext(messageId, messageIdPlural, count);
+    };
+    
     // private interface
 
     function parseMO (data)
