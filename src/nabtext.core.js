@@ -426,14 +426,14 @@
     Gettext.prototype.load = function (url, mimeType, locale)
     {
         var self = this;
-    
-        locale = locale || this.locale;
+        locale   = locale || this.locale;
     
         var successCallback = function (oHTTP)
         {
             switch (mimeType) {
                 case "application/x-mo":
                     self.strings[locale] = parseMO.call(self, oHTTP.binaryResponse);
+                    self.setlocale(locale);
                     break;
 
                 default:

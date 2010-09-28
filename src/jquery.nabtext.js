@@ -34,10 +34,6 @@
         // Gets all gettext link tags and loads the specified resources.
         $("link[rel='gettext']").each(function (i, link)
         {
-            if ($(link).attr("hreflang")) {
-                gt.setlocale($(link).attr("hreflang"));
-            }
-            
             gt.load(
                 $(link).attr("href"), $(link).attr("type"), $(link).attr("hreflang")
             );

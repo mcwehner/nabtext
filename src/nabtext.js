@@ -50,8 +50,6 @@
             var link = links[i];
             
             if ("gettext" == link.getAttribute("rel")) {
-                gt.setlocale(link.getAttribute("hreflang"));
-                
                 gt.load(
                     link.getAttribute("href"),
                     link.getAttribute("type"),
