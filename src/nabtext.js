@@ -50,11 +50,11 @@
             var link = links[i];
             
             if ("gettext" == link.getAttribute("rel")) {
-                gt.load(
-                    link.getAttribute("href"),
-                    link.getAttribute("type"),
-                    link.getAttribute("hreflang")
-                );
+                gt.load({
+                    url      : link.getAttribute("href"),
+                    mimeType : link.getAttribute("type"),
+                    locale   : link.getAttribute("hreflang")
+                });
             }
         }
     })();

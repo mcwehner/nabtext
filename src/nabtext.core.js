@@ -4,7 +4,8 @@
      * Copyright (c) 2008 Jacob Seidelin, cupboy@gmail.com, http://blog.nihilogic.dk/
      * Licensed under the MPL License [http://www.nihilogic.dk/licenses/mpl-license.txt]
      */
-    
+     
+    // TODO - Break this out into a separate file.
     var BinaryFile = function (strData)
     {
         var data       = strData;
@@ -357,57 +358,36 @@
     };
 
     // TODO - Break these parsing/loading methods out into separate files.
-    // TODO - Change the arguments `mimeType' and `locale' to be named
-    // parameters instead of separate arguments.
-    Gettext.prototype.load = function (url, mimeType, locale)
+    Gettext.prototype.load = function (options)
     {
+        var self = this;
+        
         // This list of MIME types is probably unofficial (and subject to
         // change).
-        switch (mimeType) {
-            case "application/x-mo":
-                this.loadMO(url, locale);
-                break;
-            
-            case "application/x-po":
-                this.loadPO(url, locale);
-                break;
-            
-            default:
-                throw this.sprintf('MIME type "%s" is not supported.', mimeType);
-                break;
+        var parseCallbacks = {
+            "application/x-mo" : parseMO,
+            "application/x-po" : parsePO
+        };
+        
+        if (!(options.mimeType in parseCallbacks)) {
+            throw this.sprintf('MIME type "%s" is not supported.', options.mimeType);
         }
-    };
-
-    Gettext.prototype.loadMO = function (url, locale)
-    {
-        var self = this;
-        locale   = locale || this.locale;
         
-        var successCallback = function (response)
-        {
-            self.strings[locale] = parseMO.call(self, response.data);
-            self.setlocale(locale);
-        };
-    
-        var errorCallback = function ()
-        {
-            throw self.sprintf('Failed to load "%s"', url);
-        };
-    
         XHR({
-            url     : url,
-            success : successCallback,
-            error   : errorCallback,
-            binary  : true
+            url     : options.url,
+            binary  : ("application/x-mo" == options.mimeType),
+            success : function (response)
+            {
+                self.strings[ (options.locale || self.locale) ]
+                    = parseCallbacks[options.mimeType].call(self, response.data);
+
+                self.setlocale(options.locale || self.locale);
+            },
+            error   : function ()
+            {
+                throw self.sprintf('Failed to load "%s"', url);
+            }
         });
-    };
-    
-    Gettext.prototype.loadPO = function (url, locale)
-    {
-        var self = this;
-        locale   = locale || this.locale;
-        
-        
     };
     
     Gettext.prototype.gettext = function (messageId)
