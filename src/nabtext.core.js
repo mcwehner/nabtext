@@ -1,13 +1,10 @@
-    /*
+    /* Parts of this library have come from:
+     *
      * Binary Ajax 0.1.7
      * Copyright (c) 2008 Jacob Seidelin, cupboy@gmail.com, http://blog.nihilogic.dk/
      * Licensed under the MPL License [http://www.nihilogic.dk/licenses/mpl-license.txt]
      */
- 
-    /*  The Binary Ajax library herein has been heavily modified from the
-        original.
-    */
-
+    
     var BinaryFile = function (strData, iDataOffset, iDataLength)
     {
         var data = strData;
@@ -96,155 +93,6 @@
         }
     };
 
-    var BinaryAjax = (function ()
-    {
-        function createRequest ()
-        {
-            var oHTTP = null;
-            if (window.XMLHttpRequest) {
-                oHTTP = new XMLHttpRequest();
-            } else if (window.ActiveXObject) {
-                oHTTP = new ActiveXObject("Microsoft.XMLHTTP");
-            }
-            return oHTTP;
-        }
-
-        function getHead (strURL, fncCallback, fncError)
-        {
-            var oHTTP = createRequest();
-            if (oHTTP) {
-                if (fncCallback) {
-                    if (typeof(oHTTP.onload) != "undefined") {
-                        oHTTP.onload = function() {
-                            if (oHTTP.status == "200") {
-                                fncCallback(this);
-                            } else {
-                                if (fncError) fncError();
-                            }
-                            oHTTP = null;
-                        };
-                    } else {
-                        oHTTP.onreadystatechange = function() {
-                            if (oHTTP.readyState == 4) {
-                                if (oHTTP.status == "200") {
-                                    fncCallback(this);
-                                } else {
-                                    if (fncError) fncError();
-                                }
-                                oHTTP = null;
-                            }
-                        };
-                    }
-                }
-                oHTTP.open("HEAD", strURL, true);
-                oHTTP.send(null);
-            } else {
-                if (fncError) fncError();
-            }
-        }
-
-        function sendRequest (strURL, fncCallback, fncError, aRange, bAcceptRanges, iFileSize, aSync)
-        {
-            if ("undefined" == typeof(aSync)) { aSync = true; }
-        
-            var oHTTP = createRequest();
-        
-            if (oHTTP) {
-                var iDataOffset = 0;
-                if (aRange && !bAcceptRanges) {
-                    iDataOffset = aRange[0];
-                }
-                var iDataLen = 0;
-                if (aRange) {
-                    iDataLen = aRange[1]-aRange[0]+1;
-                }
-
-                if (fncCallback) {
-                    if (typeof(oHTTP.onload) != "undefined") {
-                        oHTTP.onload = function() {
-
-                            if (oHTTP.status == "200" || oHTTP.status == "206" || oHTTP.status == "0") {
-                                oHTTP.binaryResponse = new BinaryFile(oHTTP.responseText, iDataOffset, iDataLen);
-                                oHTTP.fileSize = iFileSize || oHTTP.getResponseHeader("Content-Length");
-                                fncCallback(oHTTP);
-                            } else {
-                                if (fncError) fncError();
-                            }
-                            oHTTP = null;
-                        };
-                    } else {
-                        oHTTP.onreadystatechange = function() {
-                            if (oHTTP.readyState == 4) {
-                                if (oHTTP.status == "200" || oHTTP.status == "206" || oHTTP.status == "0") {
-                                    // IE6 craps if we try to extend the XHR object
-                                    var oRes = {
-                                        status : oHTTP.status,
-                                        binaryResponse : new BinaryFile(oHTTP.responseBody, iDataOffset, iDataLen),
-                                        fileSize : iFileSize || oHTTP.getResponseHeader("Content-Length")
-                                    };
-                                    fncCallback(oRes);
-                                } else {
-                                    if (fncError) fncError();
-                                }
-                                oHTTP = null;
-                            }
-                        };
-                    }
-                }
-                oHTTP.open("GET", strURL, aSync);
-
-                if (oHTTP.overrideMimeType) oHTTP.overrideMimeType('text/plain; charset=x-user-defined');
-
-                if (aRange && bAcceptRanges) {
-                    oHTTP.setRequestHeader("Range", "bytes=" + aRange[0] + "-" + aRange[1]);
-                }
-
-                oHTTP.setRequestHeader("If-Modified-Since", "Sat, 1 Jan 1970 00:00:00 GMT");
-
-                oHTTP.send(null);
-            } else {
-                if (fncError) fncError();
-            }
-        }
-
-        return function (options)
-        {
-            var strURL      = options["url"];
-            var fncCallback = options["success"];
-            var fncError    = options["error"];
-            var aRange      = options["range"];
-            var aSync       = options["async"];
-        
-            if ("undefined" == typeof(aSync)) { aSync = true; }
-        
-            if (!strURL) { throw "Call to `BinaryAjax()' must include a valid URL."; }
-        
-            if (aRange) {
-                getHead(
-                    strURL, 
-                    function (oHTTP)
-                    {
-                        var iStart, iEnd;
-                        var iLength         = parseInt(oHTTP.getResponseHeader("Content-Length"),10);
-                        var strAcceptRanges = oHTTP.getResponseHeader("Accept-Ranges");
-                    
-                        iStart = aRange[0];
-                    
-                        if (aRange[0] < 0) { iStart += iLength; }
-                    
-                        iEnd = iStart + aRange[1] - 1;
-
-                        sendRequest(strURL, fncCallback, fncError, [iStart, iEnd], (strAcceptRanges == "bytes"), iLength, aSync);
-                    }
-                );
-            }
-            else {
-                // TODO - Pack this into an object for simplicity
-                sendRequest(strURL, fncCallback, fncError, undefined, undefined, undefined, aSync);
-            }
-        };
-    }());
-
     // Initializes some IE-specific functions.
     (function ()
     {
@@ -260,6 +108,72 @@
         );
     })();
 
+    var XHR = (function ()
+    {
+        function createRequest ()
+        {
+            var requestConstructors = [
+                function () { return new ActiveXObject("Microsoft.XMLHTTP"); },
+                function () { return new XMLHttpRequest(); }
+            ];
+
+            for (var i = 0; i < requestConstructors.length; ++i) {
+                try {
+                    return requestConstructors[i]();
+                }
+                catch (ex) {
+                    // noop
+                }
+            }
+
+            throw "Unable to create request object.";
+        }
+
+        function sendRequest (options)
+        {
+            if ("undefined" == typeof(options.async)) {
+                options.async = false;
+            }
+            
+            var request = createRequest();
+
+            var requestCallback = function (responseData)
+            {
+                if (request.status == "200" || request.status == "206" || request.status == "0") {
+                    options.success({
+                        data   : (options.binary ? new BinaryFile(responseData) : responseData),
+                        status : request.status,
+                        length : request.getResponseHeader("Content-Length")
+                    });
+                }
+                else {
+                    if (options.error) { options.error(); }
+                }
+            };
+            
+            if (typeof(request.onload) != "undefined") {
+                request.onload = function () { requestCallback(request.responseText); };
+            }
+            else {
+                request.onreadystatechange = function ()
+                {
+                    if (request.readyState == 4) { requestCallback(request.responseBody); }
+                };
+            }
+            
+            request.open("GET", options.url, options.async);
+
+            if (request.overrideMimeType) {
+                request.overrideMimeType("text/plain; charset=x-user-defined");
+            }
+
+            request.setRequestHeader("If-Modified-Since", "Sat, 1 Jan 1970 00:00:00 GMT");
+            request.send(null);
+        }
+
+        return sendRequest;
+    }());
+    
 
     /*  Gettext
     */
@@ -423,38 +337,60 @@
         return newString;
     };
 
+    // TODO - Break these parsing/loading methods out into separate files.
+    // TODO - Change the arguments `mimeType' and `locale' to be named
+    // parameters instead of separate arguments.
     Gettext.prototype.load = function (url, mimeType, locale)
+    {
+        // This list of MIME types is probably unofficial (and subject to
+        // change).
+        switch (mimeType) {
+            case "application/x-mo":
+                this.loadMO(url, locale);
+                break;
+            
+            case "application/x-po":
+                this.loadPO(url, locale);
+                break;
+            
+            default:
+                throw this.sprintf('MIME type "%s" is not supported.', mimeType);
+                break;
+        }
+    };
+
+    Gettext.prototype.loadMO = function (url, locale)
     {
         var self = this;
         locale   = locale || this.locale;
-    
-        var successCallback = function (oHTTP)
+        
+        var successCallback = function (response)
         {
-            switch (mimeType) {
-                case "application/x-mo":
-                    self.strings[locale] = parseMO.call(self, oHTTP.binaryResponse);
-                    self.setlocale(locale);
-                    break;
-
-                default:
-                    throw self.sprintf('MIME type "%s" is not supported.', mimeType);
-                    break;
-            }
+            self.strings[locale] = parseMO.call(self, response.data);
+            self.setlocale(locale);
         };
     
-        var errorCallback = function (oHTTP)
+        var errorCallback = function ()
         {
             throw self.sprintf('Failed to load "%s"', url);
         };
     
-        BinaryAjax({
-            url : url,
+        XHR({
+            url     : url,
             success : successCallback,
             error   : errorCallback,
-            async   : false
+            binary  : true
         });
     };
-
+    
+    Gettext.prototype.loadPO = function (url, locale)
+    {
+        var self = this;
+        locale   = locale || this.locale;
+        
+        
+    };
+    
     Gettext.prototype.gettext = function (messageId)
     {
         // TODO - If the current locale (somehow) doesn't exist in the
@@ -596,4 +532,9 @@
         // TODO - Cleanup the other unused data structures (e.g., strings).
     
         return stringMap;
+    }
+
+    function parsePO (data)
+    {
+        
     }
