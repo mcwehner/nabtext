@@ -5,92 +5,111 @@
      * Licensed under the MPL License [http://www.nihilogic.dk/licenses/mpl-license.txt]
      */
     
-    var BinaryFile = function (strData, iDataOffset, iDataLength)
+    var BinaryFile = function (strData)
     {
-        var data = strData;
-        var dataOffset = iDataOffset || 0;
+        var data       = strData;
         var dataLength = 0;
 
-        this.getRawData = function() {
+        this.getRawData = function ()
+        {
             return data;
-        }
+        };
 
         if (typeof strData == "string") {
-            dataLength = iDataLength || data.length;
+            dataLength = data.length;
 
-            this.getByteAt = function(iOffset) {
-                return data.charCodeAt(iOffset + dataOffset) & 0xFF;
-            }
-        } else if (typeof strData == "unknown") {
-            dataLength = iDataLength || IEBinary_getLength(data);
+            this.getByteAt = function (iOffset)
+            {
+                return data.charCodeAt(iOffset) & 0xFF;
+            };
+        }
+        else if (typeof strData == "unknown") {
+            dataLength = IEBinary_getLength(data);
 
-            this.getByteAt = function(iOffset) {
-                return IEBinary_getByteAt(data, iOffset + dataOffset);
-            }
+            this.getByteAt = function (iOffset)
+            {
+                return IEBinary_getByteAt(data, iOffset);
+            };
         }
 
-        this.getLength = function() {
+        this.getLength = function ()
+        {
             return dataLength;
-        }
+        };
 
-        this.getSByteAt = function(iOffset) {
+        this.getSByteAt = function (iOffset)
+        {
             var iByte = this.getByteAt(iOffset);
-            if (iByte > 127)
-                return iByte - 256;
-            else
-                return iByte;
-        }
+            
+            return (iByte > 127) ? (iByte - 256) : iByte;
+        };
 
-        this.getShortAt = function(iOffset, bBigEndian) {
-            var iShort = bBigEndian ? 
-                (this.getByteAt(iOffset) << 8) + this.getByteAt(iOffset + 1)
+        this.getShortAt = function (iOffset, bBigEndian)
+        {
+            var iShort
+                = bBigEndian
+                ? (this.getByteAt(iOffset) << 8) + this.getByteAt(iOffset + 1)
                 : (this.getByteAt(iOffset + 1) << 8) + this.getByteAt(iOffset)
-            if (iShort < 0) iShort += 65536;
-            return iShort;
-        }
-        this.getSShortAt = function(iOffset, bBigEndian) {
+                ;
+            
+            return (iShort < 0) ? (iShort + 65536) : iShort;
+        };
+        
+        this.getSShortAt = function (iOffset, bBigEndian)
+        {
             var iUShort = this.getShortAt(iOffset, bBigEndian);
-            if (iUShort > 32767)
-                return iUShort - 65536;
-            else
-                return iUShort;
-        }
-        this.getLongAt = function(iOffset, bBigEndian) {
-            var iByte1 = this.getByteAt(iOffset),
-                iByte2 = this.getByteAt(iOffset + 1),
-                iByte3 = this.getByteAt(iOffset + 2),
-                iByte4 = this.getByteAt(iOffset + 3);
+            
+            return (iUShort > 32767) ? (iUShort - 65536) : iUShort;
+        };
+        
+        this.getLongAt = function (iOffset, bBigEndian)
+        {
+            var iByte1 = this.getByteAt(iOffset);
+            var iByte2 = this.getByteAt(iOffset + 1);
+            var iByte3 = this.getByteAt(iOffset + 2);
+            var iByte4 = this.getByteAt(iOffset + 3);
 
-            var iLong = bBigEndian ? 
-                (((((iByte1 << 8) + iByte2) << 8) + iByte3) << 8) + iByte4
-                : (((((iByte4 << 8) + iByte3) << 8) + iByte2) << 8) + iByte1;
-            if (iLong < 0) iLong += 4294967296;
-            return iLong;
-        }
-        this.getSLongAt = function(iOffset, bBigEndian) {
+            var iLong
+                = bBigEndian
+                ? (((((iByte1 << 8) + iByte2) << 8) + iByte3) << 8) + iByte4
+                : (((((iByte4 << 8) + iByte3) << 8) + iByte2) << 8) + iByte1
+                ;
+                
+            return (iLong < 0) ? (iLong += 4294967296) : iLong;
+        };
+        
+        this.getSLongAt = function (iOffset, bBigEndian)
+        {
             var iULong = this.getLongAt(iOffset, bBigEndian);
-            if (iULong > 2147483647)
-                return iULong - 4294967296;
-            else
-                return iULong;
-        }
-        this.getStringAt = function(iOffset, iLength) {
-            var aStr = [];
-            for (var i=iOffset,j=0;i<iOffset+iLength;i++,j++) {
-                aStr[j] = String.fromCharCode(this.getByteAt(i));
+            
+            return (iULong > 2147483647) ? (iULong - 4294967296) : iULong;
+        };
+        
+        this.getStringAt = function (iOffset, iLength)
+        {
+            var str = "";
+            
+            for (var i = iOffset; i < iOffset + iLength; ++i) {
+                str += String.fromCharCode(this.getByteAt(i));
             }
-            return aStr.join("");
-        }
+            
+            return str;
+        };
 
-        this.getCharAt = function(iOffset) {
+        this.getCharAt = function (iOffset)
+        {
             return String.fromCharCode(this.getByteAt(iOffset));
-        }
-        this.toBase64 = function() {
+        };
+        
+        this.toBase64 = function ()
+        {
             return window.btoa(data);
-        }
-        this.fromBase64 = function(strBase64) {
+        };
+        
+        this.fromBase64 = function (strBase64)
+        {
             data = window.atob(strBase64);
-        }
+        };
     };
 
     // Initializes some IE-specific functions.
