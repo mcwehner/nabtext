@@ -1,6 +1,6 @@
 (function ($)
 {
-    include(`nabtext.core.js')
+    //:include(`nabtext.core.js')
     
     (function ()
     {
