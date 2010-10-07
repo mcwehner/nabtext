@@ -407,7 +407,7 @@ Gettext.prototype.ngettext = function (messageId, messageIdPlural, count)
         return count > 1 ? parts[1] : parts[0];
     }
     else {
-        return key;
+        return count > 1 ? messageId : messageIdPlural;
     }
 };
 
