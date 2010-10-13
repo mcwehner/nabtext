@@ -428,5 +428,5 @@ Gettext.prototype.dcnpgettext = function (domain, context, messageId, messageIdP
 
 // private interface
 
-//:m4_include(`parsers/mo.js')
-//:m4_include(`parsers/po.js')
+//:m4_ifdef(`MO_PARSER', `m4_include(`parsers/mo.js')')
+//:m4_ifdef(`PO_PARSER', `m4_include(`parsers/po.js')')
