@@ -11,7 +11,9 @@ SRC_JQUERY				:= $(SRC) src/jquery.nabtext.js
 
 LIB						:= dist/nabtext.js dist/nabtext.mo.js dist/nabtext.po.js
 LIB_MINIFIED			:= dist/nabtext.min.js dist/nabtext.mo.min.js dist/nabtext.po.min.js
-JQUERY_LIB				:= dist/jquery.nabtext.js
+JQUERY_LIB				:= dist/jquery.nabtext.js dist/jquery.nabtext.mo.js dist/jquery.nabtext.po.js
+JQUERY_LIB_MINIFIED		:= dist/jquery.nabtext.min.js dist/jquery.nabtext.mo.min.js dist/jquery.nabtext.po.min.js
+
 
 .PHONY: default
 default: $(LIB)

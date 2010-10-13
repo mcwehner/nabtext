@@ -11,11 +11,6 @@ var BinaryFile = function (strData)
     var data       = strData;
     var dataLength = 0;
 
-    this.getRawData = function ()
-    {
-        return data;
-    };
-
     if (typeof strData == "string") {
         dataLength = data.length;
 
@@ -33,36 +28,6 @@ var BinaryFile = function (strData)
         };
     }
 
-    this.getLength = function ()
-    {
-        return dataLength;
-    };
-
-    this.getSByteAt = function (iOffset)
-    {
-        var iByte = this.getByteAt(iOffset);
-        
-        return (iByte > 127) ? (iByte - 256) : iByte;
-    };
-
-    this.getShortAt = function (iOffset, bBigEndian)
-    {
-        var iShort
-            = bBigEndian
-            ? (this.getByteAt(iOffset) << 8) + this.getByteAt(iOffset + 1)
-            : (this.getByteAt(iOffset + 1) << 8) + this.getByteAt(iOffset)
-            ;
-        
-        return (iShort < 0) ? (iShort + 65536) : iShort;
-    };
-    
-    this.getSShortAt = function (iOffset, bBigEndian)
-    {
-        var iUShort = this.getShortAt(iOffset, bBigEndian);
-        
-        return (iUShort > 32767) ? (iUShort - 65536) : iUShort;
-    };
-    
     this.getLongAt = function (iOffset, bBigEndian)
     {
         var iByte1 = this.getByteAt(iOffset);
@@ -78,14 +43,7 @@ var BinaryFile = function (strData)
             
         return (iLong < 0) ? (iLong += 4294967296) : iLong;
     };
-    
-    this.getSLongAt = function (iOffset, bBigEndian)
-    {
-        var iULong = this.getLongAt(iOffset, bBigEndian);
-        
-        return (iULong > 2147483647) ? (iULong - 4294967296) : iULong;
-    };
-    
+
     this.getStringAt = function (iOffset, iLength)
     {
         var str = "";
@@ -95,21 +53,6 @@ var BinaryFile = function (strData)
         }
         
         return str;
-    };
-
-    this.getCharAt = function (iOffset)
-    {
-        return String.fromCharCode(this.getByteAt(iOffset));
-    };
-    
-    this.toBase64 = function ()
-    {
-        return window.btoa(data);
-    };
-    
-    this.fromBase64 = function (strBase64)
-    {
-        data = window.atob(strBase64);
     };
 };
 

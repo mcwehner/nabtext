@@ -3,6 +3,8 @@
 
 //:m4_ifdef(`MO_PARSER', `m4_include(`binaryfile.js')')
 
+// TODO - Handle the selective inclusion of binaryfile.js better (ideally by
+// somehow making it a requirement specified by the .mo parser)
 var XHR = (function ()
 {
     function createRequest ()
@@ -79,13 +81,23 @@ var Gettext = function ()
 {
     // TODO - Make the locale strings case-insensitive throughout the
     // library (as they're supposed to be, according to BCP 47).
-    this.strings      = { "en-US" : {} };
-    this.locale       = "en-US";
-
+    this.strings = { "en-US" : {} };
+    this.locale  = "en-US";
+    
     // TODO - Make this setting actually have an effect.
     // When true, this will `console.warn' for missing message ids.
-    this.emitWarnings = true;
+    // this.emitWarnings = true;
 };
+
+
+// class methods
+var parsers = {};
+
+Gettext.addParser = function (mimeType, parser, binary)
+{
+    parsers[mimeType] = { parser: parser, binary: binary };
+};
+
 
 // public interface
 
@@ -187,29 +199,21 @@ Gettext.prototype.sprintf = function ()
     });
 };
 
-// TODO - Break these parsing/loading methods out into separate files.
 Gettext.prototype.load = function (options)
 {
     var self = this;
     
-    // This list of MIME types is probably unofficial (and subject to
-    // change).
-    var parseCallbacks = {
-        "application/x-mo" : parseMO,
-        "application/x-po" : parsePO
-    };
-    
-    if (!(options.mimeType in parseCallbacks)) {
+    if (!(options.mimeType in parsers)) {
         throw this.sprintf('MIME type "%s" is not supported.', options.mimeType);
     }
     
     XHR({
         url     : options.url,
-        binary  : ("application/x-mo" == options.mimeType),
+        binary  : parsers[options.mimeType].binary,
         success : function (response)
         {
             self.strings[ (options.locale || self.locale) ]
-                = parseCallbacks[options.mimeType].call(self, response.data);
+                = parsers[options.mimeType].parser.call(self, response.data);
 
             self.setlocale(options.locale || self.locale);
         },
@@ -301,7 +305,6 @@ Gettext.prototype.dcnpgettext = function (domain, context, messageId, messageIdP
     return this.ngettext(messageId, messageIdPlural, count);
 };
 
-// private interface
 
 //:m4_ifdef(`MO_PARSER', `m4_include(`parsers/mo.js')')
 //:m4_ifdef(`PO_PARSER', `m4_include(`parsers/po.js')')
