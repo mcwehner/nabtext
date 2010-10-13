@@ -1,6 +1,6 @@
 mkdir					:= mkdir -p
 rm						:= rm -rf
-m4						:= m4
+m4						:= m4 --prefix-builtins
 closure					:= closure
 sed						:= sed
 preprocessor_comment	:= \/\/:

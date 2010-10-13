@@ -1,6 +1,6 @@
 (function (window)
 {
-    //:include(`nabtext.core.js')
+    //:m4_include(`nabtext.core.js')
     
     Gettext.prototype.initAliases = function (context)
     {

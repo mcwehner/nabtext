@@ -223,138 +223,93 @@ Gettext.prototype.setlocale = function (locale)
 
 Gettext.prototype.sprintf = function ()
 {
-    if (typeof arguments == "undefined")    { return null; }
-    if (arguments.length < 1)               { return null; }
-    if (typeof arguments[0] != "string")    { return null; }
-    if (typeof RegExp == "undefined")       { return null; }
-
-    var string         = arguments[0];
-    var exp            = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
-    var matches        = new Array();
-    var strings        = new Array();
-    var convCount      = 0;
-    var stringPosStart = 0;
-    var stringPosEnd   = 0;
-    var matchPosEnd    = 0;
-    var newString      = "";
-    var match          = null;
-
-    while (match = exp.exec(string)) {
-        if (match[9]) { convCount += 1; }
-
-        stringPosStart          = matchPosEnd;
-        stringPosEnd            = exp.lastIndex - match[0].length;
-        strings[strings.length] = string.substring(stringPosStart, stringPosEnd);
-
-        matchPosEnd = exp.lastIndex;
-        matches[matches.length] = {
-            match       : match[0],
-            left        : match[3] ? true : false,
-            sign        : match[4] || '',
-            pad         : match[5] || ' ',
-            min         : match[6] || 0,
-            precision   : match[8],
-            code        : match[9] || '%',
-            negative    : parseInt(arguments[convCount]) < 0 ? true : false,
-            argument    : String(arguments[convCount])
-        };
+    var RE_CONVERSION = /(?:%(?:(\d+)\$)?([0\- ]*)(\d+|\*(?:\d+\$)?)?(?:\.(\d+|\*(?:\d+\$)?))?([diouxXeEfFcs%]))/g;
+    
+    // There must at least be a format string.
+    if ("undefined" == typeof(arguments) || "string" != typeof(arguments[0])) {
+        throw new TypeError("first argument to `sprintf' must be a string.");
     }
-
-    strings[strings.length] = string.substring(matchPosEnd);
-
-    if (matches.length == 0)                { return string; }
-    if ((arguments.length - 1) < convCount) { return null; }
-
-    var code  = null;
-    var match = null;
-    var i     = null;
-
-    function sprintfConvert (match, nosign)
+    
+    var formatString  = arguments[0];
+    var formatArgs    = Array.prototype.slice.call(arguments);
+    var lastFormatArg = 0;
+    
+    return formatString.replace(RE_CONVERSION, function (str, position, flagString, width, precision, specifier)
     {
-        match.sign = nosign ? "" : (match.negative ? "-" : match.sign);
-
-        var l   = match.min - match.argument.length + 1 - match.sign.length;
-        var pad = new Array(l < 0 ? 0 : l).join(match.pad);
-
-        if (!match.left) {
-            if (match.pad == "0" || nosign) {
-                return match.sign + pad + match.argument;
-            } else {
-                return pad + match.sign + match.argument;
+        position      = Number(position) || lastFormatArg + 1;
+        lastFormatArg = position;
+        
+        var arg = formatArgs[position];
+        
+        var flags = {
+            alternate           : (flagString.indexOf("#") != -1),
+            zeroPadding         : (flagString.indexOf("0") != -1),
+            negativeWidth       : (flagString.indexOf("-") != -1),
+            signedPositiveSpace : (flagString.indexOf(" ") != -1),
+            alwaysSign          : (flagString.indexOf("+") != -1),
+            localeGrouping      : (flagString.indexOf("'") != -1)
+        };
+        
+        // Allows for a specified argument to be the width or precision
+        var getVariableWidth = function (widthString)
+        {
+            return Number(widthString.replace(/\*(?:(\d+)\$)?/, function (s, i)
+            {
+                return formatArgs[ ("undefined" == typeof(i)) ? (position + 1) : i ];
+            }));
+        };
+        
+        if ("undefined" != typeof(width))     width     = getVariableWidth(width);
+        if ("undefined" != typeof(precision)) precision = getVariableWidth(precision);
+        
+        var replacement = (function ()
+        {
+            switch (specifier) {
+                case "d":
+                case "i": return parseInt(arg).toString().substr(0, precision);
+                
+                // TODO - Add alternate behavior.
+                case "o": return Math.abs(Number(arg)).toString(8).substr(0, precision);
+                
+                case "u": return Math.abs(Number(arg)).toString().substr(0, precision);
+                
+                case "x":
+                case "X": return (flags.alternate ? "0x" : "" ) + Number(arg).toString(16).substr(0, precision);
+                
+                // TODO - Add alternate behavior.
+                case "e":
+                case "E": return Number(arg).toExponential(precision);
+                
+                // TODO - Add alternate behavior.
+                case "f":
+                case "F": return Number(arg).toPrecision(precision);
+                
+                case "%": return "%";
+                
+                case "s": return String(arg).substr(0, precision);
+                
+                case "c": return String.fromCharCode(arg);
+                
+                default: return str;
             }
+        })();
+        
+        // Handles case like xX, eE, and fF which differ only by case
+        if (specifier.toUpperCase() == specifier) {
+            replacement = replacement.toUpperCase();
         }
-        else {
-            if (match.pad == "0" || nosign) {
-                return match.sign + match.argument + pad.replace(/0/g, ' ');
-            } else {
-                return match.sign + match.argument + pad;
-            }
+        
+        // padding
+        if ("undefined" != typeof(width) && width > replacement.length) {
+            var padStr   = new Array(width - replacement.length + 1).join(
+                (flags.negativeWidth || !flags.zeroPadding) ? " " : "0"
+            );
+            
+            replacement = flags.negativeWidth ? (replacement + padStr) : (padStr + replacement);
         }
-    }
-
-    for (var i = 0; i < matches.length; ++i) {
-        switch (matches[i].code) {
-            case "%":
-                substitution = '%';
-                break;
-            
-            case "b":
-                matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(2));
-                substitution        = sprintfConvert(matches[i], true);
-                break;
-            
-            case "c":
-                matches[i].argument = String(String.fromCharCode(parseInt(Math.abs(parseInt(matches[i].argument)))));
-                substitution = sprintfConvert(matches[i], true);
-                break;
-            
-            case "d":
-                matches[i].argument = String(Math.abs(parseInt(matches[i].argument)));
-                substitution = sprintfConvert(matches[i]);
-                break;
-            
-            case "f":
-                matches[i].argument = String(Math.abs(parseFloat(matches[i].argument)).toFixed(matches[i].precision ? matches[i].precision : 6));
-                substitution = sprintfConvert(matches[i]);
-                break;
-            
-            case "o":
-                matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(8));
-                substitution = sprintfConvert(matches[i]);
-                break;
-            
-            case "s":
-                matches[i].argument = matches[i].argument.substring(0, matches[i].precision ? matches[i].precision : matches[i].argument.length)
-                substitution = sprintfConvert(matches[i], true);
-                break;
-            
-            case "x":
-                matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
-                substitution = sprintfConvert(matches[i]);
-                break;
-            
-            case "X":
-                matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
-                substitution = sprintfConvert(matches[i]).toUpperCase();
-                break;
-            
-            case "i":
-                matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString());
-                substitution = sprintfConvert(matches[i], true);
-                break;
-            
-            default:
-                substitution = matches[i].match;
-                break;
-        }
-
-        newString += strings[i];
-        newString += substitution;
-    }
-
-    newString += strings[i];
-
-    return newString;
+        
+        return replacement;
+    });
 };
 
 // TODO - Break these parsing/loading methods out into separate files.
@@ -473,5 +428,5 @@ Gettext.prototype.dcnpgettext = function (domain, context, messageId, messageIdP
 
 // private interface
 
-//:include(`parsers/mo.js')
-//:include(`parsers/po.js')
+//:m4_include(`parsers/mo.js')
+//:m4_include(`parsers/po.js')
