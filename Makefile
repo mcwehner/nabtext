@@ -5,7 +5,7 @@ closure					:= closure
 sed						:= sed
 preprocessor_comment	:= \/\/:
 
-SRC						:= src/nabtext.core.js src/parsers/*.js
+SRC						:= src/nabtext.core.js src/binaryfile.js src/parsers/*.js
 SRC_LIB					:= $(SRC) src/nabtext.js
 SRC_JQUERY				:= $(SRC) src/jquery.nabtext.js
 
@@ -14,10 +14,13 @@ LIB_MINIFIED			:= dist/nabtext.min.js dist/nabtext.mo.min.js dist/nabtext.po.min
 JQUERY_LIB				:= dist/jquery.nabtext.js
 
 .PHONY: default
-default: $(LIB) $(LIB_MINIFIED)
+default: $(LIB)
+
+.PHONY: minified
+minified: $(LIB_MINIFIED)
 
 dist:
-	$(mkdir) dist
+	$(mkdir) $@
 
 
 dist/nabtext.js:	PARSE_INCLUDE	:= -D MO_PARSER -D PO_PARSER
