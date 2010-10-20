@@ -146,40 +146,49 @@ Gettext.prototype.sprintf = function ()
             }));
         };
         
-        if ("undefined" != typeof(width))     width     = getVariableWidth(width);
-        if ("undefined" != typeof(precision)) precision = getVariableWidth(precision);
+        if ("undefined" != typeof(width) && width)         width     = getVariableWidth(width);
+        if ("undefined" != typeof(precision) && precision) precision = getVariableWidth(precision);
         
         var replacement = (function ()
         {
             switch (specifier) {
                 case "d":
-                case "i": return parseInt(arg).toString().substr(0, precision);
+                case "i": return parseInt(arg).toString();
                 
                 // TODO - Add alternate behavior.
-                case "o": return Math.abs(Number(arg)).toString(8).substr(0, precision);
+                case "o": return Math.abs(Number(arg)).toString(8);
                 
-                case "u": return Math.abs(Number(arg)).toString().substr(0, precision);
+                case "u": return Math.abs(Number(arg)).toString();
                 
                 case "x":
-                case "X": return (flags.alternate ? "0x" : "" ) + Number(arg).toString(16).substr(0, precision);
+                case "X": return (flags.alternate ? "0x" : "" ) + Number(arg).toString(16);
                 
                 // TODO - Add alternate behavior.
                 case "e":
-                case "E": return Number(arg).toExponential(precision);
+                case "E": return Number(arg);
                 
                 // TODO - Add alternate behavior.
                 case "f":
-                case "F": return Number(arg).toPrecision(precision);
+                case "F": return Number(arg);
                 
                 case "%": return "%";
                 
-                case "s": return String(arg).substr(0, precision);
+                case "s": return String(arg);
                 
                 case "c": return String.fromCharCode(arg);
                 
                 default: return str;
             }
         })();
+        
+        // FF treats things like `str.substr(0, undefined)' as the same thing
+        // as `str.substr(0, 0)', which produces the empty string. I need a
+        // better way to do this.
+        if (precision || precision === 0) {
+            if (specifier.match(/^[diouxXs]$/)) replacement = replacement.substr(0, precision);
+            else if (specifier.match(/^[eE]$/)) replacement = replacement.toExponential(precision);
+            else if (specifier.match(/^[fF]$/)) replacement = replacement.toPrecision(precision);
+        }
         
         // Handles case like xX, eE, and fF which differ only by case
         if (specifier.toUpperCase() == specifier) {
