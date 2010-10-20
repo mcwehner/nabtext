@@ -250,7 +250,7 @@ Gettext.prototype.ngettext = function (messageId, messageIdPlural, count)
         return count > 1 ? parts[1] : parts[0];
     }
     else {
-        return count > 1 ? messageId : messageIdPlural;
+        return count > 1 ? messageIdPlural : messageId;
     }
 };
 
