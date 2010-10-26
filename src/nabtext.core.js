@@ -81,12 +81,10 @@ var Gettext = function ()
 {
     // TODO - Make the locale strings case-insensitive throughout the
     // library (as they're supposed to be, according to BCP 47).
-    this.strings = { "en-US" : {} };
-    this.locale  = "en-US";
-    
-    // TODO - Make this setting actually have an effect.
-    // When true, this will `console.warn' for missing message ids.
-    // this.emitWarnings = true;
+    this.strings         = { "en-US" : {} };
+    this.meta            = { "en-US" : {} };
+    this.pluralFunctions = { "en-US" : {} };
+    this.locale          = "en-US";
 };
 
 
@@ -103,7 +101,11 @@ Gettext.addParser = function (mimeType, parser, binary)
 
 Gettext.prototype.setlocale = function (locale)
 {
-    if (locale) { this.locale = locale; }
+    if (locale) {
+        this.locale          = locale;
+        this.strings[locale] = this.strings[locale] || {};
+        this.meta[locale]    = this.meta[locale]    || {};
+    }
 
     return this.locale;
 };
@@ -221,10 +223,36 @@ Gettext.prototype.load = function (options)
         binary  : parsers[options.mimeType].binary,
         success : function (response)
         {
-            self.strings[ (options.locale || self.locale) ]
-                = parsers[options.mimeType].parser.call(self, response.data);
-
             self.setlocale(options.locale || self.locale);
+            
+            self.strings[self.locale]
+                = parsers[options.mimeType].parser.call(self, response.data);
+            
+            var metaParts = self.strings[self.locale][""].split("\n");
+            delete self.strings[self.locale][""];
+            
+            for (var part; part = metaParts.pop(), metaParts.length > 0; ) {
+                var m = part.match(/^([^:]+):\s*(.*)$/);
+                
+                if (m) self.meta[self.locale][ m[1] ] = m[2];
+            }
+            
+            self.pluralFunctions[self.locale] = (function ()
+            {
+                var pluralExpression
+                    = self.meta[self.locale]["Plural-Forms"].match(/plural=([^;]+)/)[1];
+                    
+                var pluralFunc = new Function("n", "return " + pluralExpression + ";");
+                
+                return function (n) {
+                    var plural = pluralFunc(n);
+                    
+                    if (plural === true || plural === false)
+                        return plural ? 1 : 0;
+                    else
+                        return plural;
+                };
+            })();
         },
         error   : function ()
         {
@@ -247,10 +275,10 @@ Gettext.prototype.ngettext = function (messageId, messageIdPlural, count)
     if (key in this.strings[this.locale]) {
         var parts = this.strings[this.locale][key].split("\0");
     
-        return count > 1 ? parts[1] : parts[0];
+        return parts[ this.pluralFunctions[this.locale](count) ];
     }
     else {
-        return count > 1 ? messageIdPlural : messageId;
+        return arguments[ this.pluralFunctions[this.locale](count) ];
     }
 };
 
