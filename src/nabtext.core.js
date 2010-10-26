@@ -268,17 +268,19 @@ Gettext.prototype.gettext = function (messageId)
     return this.strings[this.locale][messageId] || messageId;
 };
 
-Gettext.prototype.ngettext = function (messageId, messageIdPlural, count)
+Gettext.prototype.ngettext = function (/* messageId*, count */)
 {
-    var key = messageId + "\0" + messageIdPlural;
+    var args  = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
+    var count = arguments[arguments.length - 1];
+    var key   = args.join("\0");
 
     if (key in this.strings[this.locale]) {
-        var parts = this.strings[this.locale][key].split("\0");
-    
-        return parts[ this.pluralFunctions[this.locale](count) ];
+        return this.strings[this.locale][key].split("\0")[
+            this.pluralFunctions[this.locale](count)
+        ];
     }
     else {
-        return arguments[ this.pluralFunctions[this.locale](count) ];
+        return args[ this.pluralFunctions[this.locale](count) ];
     }
 };
 
