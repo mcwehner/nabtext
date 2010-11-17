@@ -49,10 +49,11 @@ var BinaryFile = function (strData)
         var str = "";
         
         for (var i = iOffset; i < iOffset + iLength; ++i) {
-            str += String.fromCharCode(this.getByteAt(i));
+            var nextByte = this.getByteAt(i);
+            str += "%" + (nextByte <= 0xf ? "0" : "") + nextByte.toString(16);
         }
         
-        return str;
+        return decodeURIComponent(str);
     };
 };
 

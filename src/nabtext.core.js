@@ -239,6 +239,12 @@ Gettext.prototype.load = function (options)
             
             self.pluralFunctions[self.locale] = (function ()
             {
+                var DEFAULT_PLURAL_EXPRESSION = "nplurals=2; plural=(n != 1);\n";
+                
+                if (!self.meta[self.locale]["Plural-Forms"]) {
+                    self.meta[self.locale]["Plural-Forms"] = DEFAULT_PLURAL_EXPRESSION;
+                }
+                
                 var pluralExpression
                     = self.meta[self.locale]["Plural-Forms"].match(/plural=([^;]+)/)[1];
                     
