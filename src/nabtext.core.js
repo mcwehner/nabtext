@@ -83,7 +83,7 @@ var Gettext = function ()
     // library (as they're supposed to be, according to BCP 47).
     this.strings         = { "en-US" : {} };
     this.meta            = { "en-US" : {} };
-    this.pluralFunctions = { "en-US" : {} };
+    this.pluralFunctions = { "en-US" : function (n) { return (n != 1); } };
     this.locale          = "en-US";
 };
 
@@ -239,14 +239,11 @@ Gettext.prototype.load = function (options)
             
             self.pluralFunctions[self.locale] = (function ()
             {
-                var DEFAULT_PLURAL_EXPRESSION = "nplurals=2; plural=(n != 1);\n";
-                
-                if (!self.meta[self.locale]["Plural-Forms"]) {
-                    self.meta[self.locale]["Plural-Forms"] = DEFAULT_PLURAL_EXPRESSION;
-                }
-                
                 var pluralExpression
-                    = self.meta[self.locale]["Plural-Forms"].match(/plural=([^;]+)/)[1];
+                    = self.meta[self.locale]["Plural-Forms"]
+                    ? self.meta[self.locale]["Plural-Forms"].match(/plural=([^;]+)/)[1]
+                    : "throw new Error()"
+                    ;
                 
                 var pluralFunc = new Function("n", "return " + pluralExpression + ";");
                 
