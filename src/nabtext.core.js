@@ -83,7 +83,7 @@ var Gettext = function ()
     // library (as they're supposed to be, according to BCP 47).
     this.strings         = { "en-US" : {} };
     this.meta            = { "en-US" : {} };
-    this.pluralFunctions = { "en-US" : function (n) { return (n != 1); } };
+    this.pluralFunctions = { "en-US" : function (n) { return (n != 1 ? 1 : 0); } };
     this.locale          = "en-US";
 };
 
