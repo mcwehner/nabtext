@@ -23,7 +23,7 @@ var XHR = (function ()
             }
         }
 
-        throw "Unable to create request object.";
+        throw new Error("Unable to create request object.");
     }
 
     function sendRequest (options)
@@ -215,7 +215,7 @@ Gettext.prototype.load = function (options)
     var self = this;
     
     if (!(options.mimeType in parsers)) {
-        throw this.sprintf('MIME type "%s" is not supported.', options.mimeType);
+        throw new Error(this.sprintf('MIME type "%s" is not supported.', options.mimeType));
     }
     
     XHR({
@@ -247,8 +247,23 @@ Gettext.prototype.load = function (options)
                 
                 var pluralExpression
                     = self.meta[self.locale]["Plural-Forms"].match(/plural=([^;]+)/)[1];
-                    
+                
                 var pluralFunc = new Function("n", "return " + pluralExpression + ";");
+                
+                // MCW: We want to make sure this is a valid expression, as
+                // improper use of the gettext toolchain (e.g., failing to
+                // use `msginit' or setting the correct headers by hand) is
+                // sometimes causing our expression to be the string
+                // "EXPRESSION".
+                try {
+                    for (var i = 0; i < 10; ++i) { pluralFunc(i); }
+                }
+                catch (e) {
+                    throw new EvalError(
+                        "The pluralization expression '" + pluralExpression + "' is not valid."
+                        + " Make sure that the Plural-Forms header is set correctly in your translation file."
+                    );
+                }
                 
                 return function (n) {
                     var plural = pluralFunc(n);
@@ -262,7 +277,7 @@ Gettext.prototype.load = function (options)
         },
         error   : function ()
         {
-            throw self.sprintf('Failed to load "%s"', url);
+            throw new Error(self.sprintf('Failed to load "%s"', url));
         }
     });
 };
