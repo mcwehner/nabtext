@@ -63,5 +63,5 @@
         return stringMap;
     }
 
-    Gettext.addParser("application/x-mo", parseMO, true);
+    Gettext.addParser("application/x-mo", parseMO, { binary: false });
 })();

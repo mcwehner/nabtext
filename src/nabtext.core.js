@@ -91,9 +91,12 @@ var Gettext = function ()
 // class methods
 var parsers = {};
 
-Gettext.addParser = function (mimeType, parser, binary)
+Gettext.addParser = function (mimeType, parser, options)
 {
-    parsers[mimeType] = { parser: parser, binary: binary };
+    options           = options || {};
+    options["binary"] = options["binary"] || false;
+    
+    parsers[mimeType] = { parser: parser, binary: options["binary"] };
 };
 
 

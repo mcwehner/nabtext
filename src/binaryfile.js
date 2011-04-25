@@ -5,13 +5,12 @@
  * Licensed under the MPL License [http://www.nihilogic.dk/licenses/mpl-license.txt]
  */
  
-// TODO - Break this out into a separate file.
 var BinaryFile = function (strData)
 {
     var data       = strData;
     var dataLength = 0;
 
-    if (typeof strData == "string") {
+    if ("string" == typeof strData) {
         dataLength = data.length;
 
         this.getByteAt = function (iOffset)
@@ -19,7 +18,7 @@ var BinaryFile = function (strData)
             return data.charCodeAt(iOffset) & 0xFF;
         };
     }
-    else if (typeof strData == "unknown") {
+    else if ("unknown" == typeof strData) {
         dataLength = IEBinary_getLength(data);
 
         this.getByteAt = function (iOffset)
@@ -50,6 +49,7 @@ var BinaryFile = function (strData)
         
         for (var i = iOffset; i < iOffset + iLength; ++i) {
             var nextByte = this.getByteAt(i);
+            
             str += "%" + (nextByte <= 0xf ? "0" : "") + nextByte.toString(16);
         }
         
