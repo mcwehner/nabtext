@@ -1,0 +1,107 @@
+Nabtext Internals
+=================
+
+Library Load
+------------
+
+### 1. Containing closure
+
+`Nabtext` is set up within a self-executing function expression that ensures
+`window` is available within the body of the function.
+
+
+### 2. `Gettext` global object initialization
+
+Default dictionaries are set up here, using "en-US" as the default locale:
+
+#### `strings`
+
+Contains all string keys and translated values.
+
+
+#### `meta`
+
+Contains the meta-data (if any) represented by the string with the empty key.
+
+
+#### `pluralFunctions`
+
+Contains the pluralization functions for each locale. For example, the
+pluralization function for "en-US" is:
+
+    function (n) { return (n != 1 ? 1 : 0); }
+
+
+### 3. `initAliases()` adds API methods to the window
+
+Technically, `initAliases` accepts a context as its sole argument, which is
+`window` (as passed in to the containing closure) by default:
+
+    Gettext.prototype.initAliases = function (context)
+    {
+        context = context || window;
+        
+        ...
+    };
+
+This enables `initAliases` to also be called from a different context (e.g.,
+within an iframe) to cause the current context to re-use the existing nabtext
+environment:
+
+    // from within an iframe
+    window.top.Gettext.initAliases(window);
+
+
+### 4. `<link rel="gettext"/>` tags are discovered for loading translations
+
+Any `<link/>` tags with the attribute `rel="gettext"` are discovered, and the
+`type` attribute is examined to see if the requested file is supported.
+Currently supported types are:
+
+* `application/x-mo`
+* `application/x-po`
+
+
+Future support is planned for these additional types:
+
+* `application/json`
+
+
+Supported files are then loaded via `Gettext.load()`.
+
+
+Synchronous File Loading
+------------------------
+
+### Today
+
+Currently, all calls to `Gettext.load()` are synchronous; this is to ensure
+that it's safe to make calls to the Gettext API immediately after the script
+tag that loads this library, but has the obvious drawback that any user
+interaction is effectively delayed until loading completes.
+
+
+### Tomorrow
+
+Support for asynchronous loading is planned, but care must be taken by
+application authors to not call methods of the Gettext API before the library
+is fully loaded.
+
+
+### Someday
+
+It may also be desirable to "stage" loading of the translations so that only
+translated strings that are initially viewable by the user are loaded
+synchronously. Additional translated strings can then be loaded
+asynchronously, provided that no attempt to use them is made prior to
+completion of loading.
+
+One way this might be done is with an application-specified callback function
+that fires, allowing an application to present a "loading" status until
+loading is complete.
+
+Staged loading of the translations might be as simple as having one
+translation file containing only those strings that are immediately visible
+which is loaded synchronously, and one or more translation files that contain
+strings not immediately visible and can be loaded asynchronously after any
+blocking loads.
